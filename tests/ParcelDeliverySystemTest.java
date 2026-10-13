@@ -28,6 +28,7 @@ public final class ParcelDeliverySystemTest {
         testValidation();
         testManager();
         testConsole();
+        testUnchangedDeliveryService();
         testEndOfInput();
         System.out.println("All " + checks + " checks passed.");
     }
@@ -218,6 +219,31 @@ public final class ParcelDeliverySystemTest {
         check(transcript.lines().anyMatch(line -> line.startsWith("ABC1000")
                 && line.contains("Fragile") && line.contains("Ana Cruz") && line.contains("Same Day")
                 && line.contains("Php 540.00") && line.contains("Delivered")), "Table shows final fragile state");
+    }
+
+    private static void testUnchangedDeliveryService() throws Exception {
+        ParcelManager manager = ParcelManager.getInstance();
+        Document parcel = document("0.1", 1);
+        manager.addParcel(parcel);
+        DeliveryStrategy[] services = {new StandardDelivery(), new ExpressDelivery(), new SameDayDelivery()};
+        for (int index = 0; index < services.length; index++) {
+            parcel.changeDeliveryService(services[index]);
+            BigDecimal oldFee = parcel.getDeliveryFee();
+            String transcript = console("3\n" + parcel.getTrackingNumber() + "\n" + (index + 1) + "\n5\n");
+            contains(transcript, "It is already " + services[index].getName());
+            contains(transcript, "Goodbye!");
+            check(!transcript.contains("Delivery service changed!"),
+                    "Selecting the current service must not report a change");
+            check(!transcript.contains("Input ended."), "Unchanged service must return to the menu");
+            check(parcel.getDeliveryService() == services[index], "Current strategy must be preserved");
+            decimal(parcel.getDeliveryFee(), oldFee.toPlainString());
+            equal(parcel.getStatus(), ParcelStatus.PENDING);
+        }
+        manager.markAsDelivered(parcel.getTrackingNumber());
+        String transcript = console("3\n" + parcel.getTrackingNumber() + "\n5\n");
+        contains(transcript, "Parcel already delivered!");
+        check(!transcript.contains("Select delivery service:"), "Delivered parcels must reject service selection");
+        check(!transcript.contains("It is already "), "Delivered-parcel message takes precedence");
     }
 
     private static void testEndOfInput() throws Exception {

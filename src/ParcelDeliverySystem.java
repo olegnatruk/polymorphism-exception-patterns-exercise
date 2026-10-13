@@ -126,10 +126,16 @@ public final class ParcelDeliverySystem {
             return;
         }
         String tracking = readTracking(false);
-        manager.findParcel(tracking).ensurePending();
-        manager.changeDeliveryService(tracking, readDeliveryService());
+        Parcel parcel = manager.findParcel(tracking);
+        parcel.ensurePending();
+        DeliveryStrategy service = readDeliveryService();
+        if (parcel.getDeliveryService().getName().equals(service.getName())) {
+            output.println("It is already " + service.getName());
+            return;
+        }
+        manager.changeDeliveryService(tracking, service);
         output.println("Delivery service changed! New fee: Php "
-                + money(manager.findParcel(tracking).getDeliveryFee()));
+                + money(parcel.getDeliveryFee()));
     }
 
     private void markAsDelivered() throws ParcelException {

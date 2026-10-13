@@ -50,6 +50,8 @@ Weights and money use `BigDecimal`. Volume multiplication avoids integer overflo
 
 An ineligible Same Day selection while adding a parcel repeats service selection. An ineligible service change shows `Same Day delivery is only for parcels up to 10 kg!` and returns to the main menu, keeping the previous service and fee.
 
+Selecting a pending parcel's current service displays `It is already Standard`, `It is already Express`, or `It is already Same Day` and returns to the menu. The parcel keeps its existing service and fee.
+
 ## Required object-oriented concepts
 
 - **Polymorphism:** abstract `Parcel` defines `getType()`, `getChargeableWeight()`, and `getBaseFee()`. `Document`, `Box`, and `Fragile` override behavior. The table iterates over `Parcel` references and calls those methods without selecting a fee formula by type. `Fragile extends Box` reuses the Box chargeable weight and adds its handling fee to `super.getBaseFee()`.
