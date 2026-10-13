@@ -53,7 +53,7 @@ public final class ParcelDeliverySystem {
         output.println("\n1. Document\n2. Box\n3. Fragile");
         int type = readInteger("Select parcel type: ", 1, 3, "Parcel type");
         String tracking = readTracking(true);
-        String receiver = readText("Receiver name: ", "Receiver name");
+        String receiver = readReceiverName();
         BigDecimal maximum = new BigDecimal(type == 1 ? "0.5" : type == 2 ? "50" : "30");
         BigDecimal weight = readWeight(maximum);
         Parcel parcel;
@@ -166,6 +166,16 @@ public final class ParcelDeliverySystem {
                 }
                 return tracking;
             } catch (ParcelException exception) {
+                output.println(exception.getMessage());
+            }
+        }
+    }
+
+    private String readReceiverName() {
+        while (true) {
+            try {
+                return Validation.receiverName(readLine("Receiver name (3-20 characters): "));
+            } catch (InvalidParcelException exception) {
                 output.println(exception.getMessage());
             }
         }

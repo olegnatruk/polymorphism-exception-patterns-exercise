@@ -10,6 +10,15 @@ final class Validation {
         return value.strip();
     }
 
+    static String receiverName(String value) throws InvalidParcelException {
+        String name = text(value, "Receiver name");
+        int length = name.codePointCount(0, name.length());
+        if (length < 3 || length > 20) {
+            throw new InvalidParcelException("Receiver name must be 3-20 characters!");
+        }
+        return name;
+    }
+
     static String tracking(String value) throws InvalidParcelException {
         String tracking = text(value, "Tracking number");
         if (!tracking.matches("ABC[0-9]{4}")) {

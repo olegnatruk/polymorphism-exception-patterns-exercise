@@ -11,7 +11,7 @@ public abstract class Parcel {
     protected Parcel(String trackingNumber, String receiverName, BigDecimal weight,
                      BigDecimal maximumWeight) throws InvalidParcelException {
         this.trackingNumber = Validation.tracking(trackingNumber);
-        this.receiverName = Validation.text(receiverName, "Receiver name");
+        this.receiverName = Validation.receiverName(receiverName);
         this.weight = Validation.weight(weight, maximumWeight);
     }
 

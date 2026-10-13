@@ -24,7 +24,7 @@ For Windows Command Prompt, use `mkdir out` instead of `mkdir -p out`. The Java 
 5. Exit
 ```
 
-Enter a manually assigned tracking number matching uppercase `ABC` followed by four digits (for example, `ABC0001`). Tracking numbers must be unique in the current session. Text is trimmed; receiver names and handling notes cannot be blank. Invalid input is explained and prompted again. New parcels start as Pending.
+Enter a manually assigned tracking number matching uppercase `ABC` followed by four digits (for example, `ABC0001`). Tracking numbers must be unique in the current session. Text is trimmed; receiver names must be **3–20 characters** after trimming, and handling notes cannot be blank. Invalid input is explained and prompted again. New parcels start as Pending.
 
 Parcels are kept **in memory only** and are discarded when the program exits. End of input exits cleanly without storing an unfinished parcel. Delivered parcels remain visible, and their service cannot be changed.
 
