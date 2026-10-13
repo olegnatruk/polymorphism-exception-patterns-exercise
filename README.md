@@ -28,6 +28,8 @@ Enter a manually assigned tracking number matching uppercase `ABC` followed by f
 
 Parcels are kept **in memory only** and are discarded when the program exits. End of input exits cleanly without storing an unfinished parcel. Delivered parcels remain visible, and their service cannot be changed.
 
+When no parcels have been added, View All Parcels, Change Delivery Service, and Mark as Delivered display `No parcels available.` and return to the menu without requesting a tracking number.
+
 ## Parcel and pricing rules
 
 | Type | Additional details | Maximum actual weight | Chargeable weight | Base fee |

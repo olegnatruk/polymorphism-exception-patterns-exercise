@@ -121,6 +121,10 @@ public final class ParcelDeliverySystem {
     }
 
     private void changeDeliveryService() throws ParcelException {
+        if (manager.getAllParcels().isEmpty()) {
+            output.println("No parcels available.");
+            return;
+        }
         String tracking = readTracking(false);
         manager.findParcel(tracking).ensurePending();
         manager.changeDeliveryService(tracking, readDeliveryService());
@@ -129,6 +133,10 @@ public final class ParcelDeliverySystem {
     }
 
     private void markAsDelivered() throws ParcelException {
+        if (manager.getAllParcels().isEmpty()) {
+            output.println("No parcels available.");
+            return;
+        }
         boolean delivered = manager.markAsDelivered(readTracking(false));
         output.println(delivered ? "Parcel delivered successfully!" : "Parcel was already delivered.");
     }

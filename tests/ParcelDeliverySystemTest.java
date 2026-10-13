@@ -13,6 +13,15 @@ public final class ParcelDeliverySystemTest {
 
     public static void main(String[] args) throws Exception {
         contains(console("2\n5\n"), "No parcels available.");
+        for (int choice : new int[] {3, 4}) {
+            String transcript = console(choice + "\n5\n");
+            contains(transcript, "No parcels available.");
+            contains(transcript, "Goodbye!");
+            check(!transcript.contains("Tracking number (ABC0000): "),
+                    "Empty collection must not prompt for a tracking number");
+            check(!transcript.contains("Input ended."),
+                    "Empty collection must return to the menu and accept Exit");
+        }
         testDocuments();
         testBoxesAndFragile();
         testStrategies();
