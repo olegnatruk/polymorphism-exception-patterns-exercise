@@ -237,10 +237,10 @@ public final class ParcelDeliverySystemTest {
         Parcel document = manager.findParcel("ABC1002");
         decimal(document.getChargeableWeight(), "0.5");
         decimal(document.getDeliveryFee(), "50");
-        check(transcript.lines().anyMatch(line -> line.startsWith("ABC1001")
+        check(transcript.lines().anyMatch(line -> line.startsWith("│ ABC1001")
                 && line.contains("Box") && line.contains("Express") && line.contains("Php 660.00")
                 && line.contains("Pending")), "Table includes all box attributes and retained service");
-        check(transcript.lines().anyMatch(line -> line.startsWith("ABC1000")
+        check(transcript.lines().anyMatch(line -> line.startsWith("│ ABC1000")
                 && line.contains("Fragile") && line.contains("Ana Cruz") && line.contains("Same Day")
                 && line.contains("Php 540.00") && line.contains("Delivered")), "Table shows final fragile state");
     }

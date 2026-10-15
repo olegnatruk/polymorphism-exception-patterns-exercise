@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Scanner;
 
 public final class ParcelDeliverySystem {
@@ -22,11 +21,10 @@ public final class ParcelDeliverySystem {
     }
 
     public void run() {
-        output.println("Parcel Delivery System");
         try {
             while (true) {
-                output.println("\n1. Add Parcel\n2. View All Parcels\n3. Change Delivery Service"
-                        + "\n4. Mark as Delivered\n5. Exit");
+                printBox("Parcel Delivery System", "1. Add Parcel", "2. View All Parcels",
+                        "3. Change Delivery Service", "4. Mark as Delivered", "5. Exit");
                 int choice = readInteger("Choose an option: ", 1, 5, "Menu option");
                 try {
                     switch (choice) {
@@ -50,7 +48,7 @@ public final class ParcelDeliverySystem {
     }
 
     private void addParcel() throws ParcelException {
-        output.println("\n1. Document\n2. Box\n3. Fragile");
+        printBox("Parcel Type", "1. Document", "2. Box", "3. Fragile");
         int type = readInteger("Select parcel type: ", 1, 3, "Parcel type");
         String tracking = readTracking(true);
         String receiver = readReceiverName();
@@ -100,25 +98,23 @@ public final class ParcelDeliverySystem {
         int[] widths = new int[7];
         for (String[] row : rows) {
             for (int column = 0; column < widths.length; column++) {
-                widths[column] = Math.max(widths[column], row[column].length());
+                widths[column] = Math.max(widths[column], textWidth(row[column]));
             }
         }
-        StringBuilder format = new StringBuilder();
-        for (int width : widths) {
-            format.append("%-").append(width).append("s | ");
-        }
-        format.append("%n");
         output.println();
+        output.println(tableBorder(widths, '┌', '┬', '┐'));
         for (int index = 0; index < rows.size(); index++) {
-            output.printf(Locale.ROOT, format.toString(), (Object[]) rows.get(index));
+            StringBuilder line = new StringBuilder("│");
+            String[] row = rows.get(index);
+            for (int column = 0; column < widths.length; column++) {
+                line.append(' ').append(padRight(row[column], widths[column])).append(" │");
+            }
+            output.println(line);
             if (index == 0) {
-                int totalWidth = 0;
-                for (int width : widths) {
-                    totalWidth += width + 3;
-                }
-                output.println("-".repeat(totalWidth));
+                output.println(tableBorder(widths, '├', '┼', '┤'));
             }
         }
+        output.println(tableBorder(widths, '└', '┴', '┘'));
     }
 
     private void changeDeliveryService() throws ParcelException {
@@ -149,7 +145,7 @@ public final class ParcelDeliverySystem {
     }
 
     private DeliveryStrategy readDeliveryService() {
-        output.println("\n1. Standard\n2. Express\n3. Same Day");
+        printBox("Delivery Service", "1. Standard", "2. Express", "3. Same Day");
         return switch (readInteger("Select delivery service: ", 1, 3, "Delivery service")) {
             case 1 -> new StandardDelivery();
             case 2 -> new ExpressDelivery();
@@ -224,6 +220,41 @@ public final class ParcelDeliverySystem {
             throw new EndOfInputException();
         }
         return input.nextLine().strip();
+    }
+
+    private void printBox(String title, String... lines) {
+        int width = textWidth(title);
+        for (String line : lines) {
+            width = Math.max(width, textWidth(line));
+        }
+        String border = "═".repeat(width + 2);
+        output.println();
+        output.println("╔" + border + "╗");
+        output.println("║ " + padRight(title, width) + " ║");
+        output.println("╠" + border + "╣");
+        for (String line : lines) {
+            output.println("║ " + padRight(line, width) + " ║");
+        }
+        output.println("╚" + border + "╝");
+    }
+
+    private static String tableBorder(int[] widths, char left, char middle, char right) {
+        StringBuilder border = new StringBuilder().append(left);
+        for (int column = 0; column < widths.length; column++) {
+            if (column > 0) {
+                border.append(middle);
+            }
+            border.append("─".repeat(widths[column] + 2));
+        }
+        return border.append(right).toString();
+    }
+
+    private static int textWidth(String text) {
+        return text.codePointCount(0, text.length());
+    }
+
+    private static String padRight(String text, int width) {
+        return text + " ".repeat(width - textWidth(text));
     }
 
     private static String money(BigDecimal amount) {

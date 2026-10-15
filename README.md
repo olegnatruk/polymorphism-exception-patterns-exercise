@@ -8,20 +8,26 @@ Install **JDK 17 or newer**. No Maven, Gradle, database, or external libraries a
 
 ```sh
 mkdir -p out
-javac --release 17 -d out src/*.java
+javac -encoding UTF-8 --release 17 -d out src/*.java
 java -cp out ParcelDeliverySystem
 ```
 
 For Windows Command Prompt, use `mkdir out` instead of `mkdir -p out`. The Java commands are the same.
 
+Menus and the parcel table use Unicode box-drawing borders. Use a UTF-8 terminal with a font that supports these characters.
+
 ## Menu
 
 ```text
-1. Add Parcel
-2. View All Parcels
-3. Change Delivery Service
-4. Mark as Delivered
-5. Exit
+╔════════════════════════════╗
+║ Parcel Delivery System     ║
+╠════════════════════════════╣
+║ 1. Add Parcel              ║
+║ 2. View All Parcels        ║
+║ 3. Change Delivery Service ║
+║ 4. Mark as Delivered       ║
+║ 5. Exit                    ║
+╚════════════════════════════╝
 ```
 
 Enter a manually assigned tracking number matching uppercase `ABC` followed by four digits (for example, `ABC0001`). Tracking numbers must be unique in the current session. Text is trimmed; receiver names must be **3–20 characters** after trimming, and handling notes cannot be blank. Invalid input is explained and prompted again. New parcels start as Pending.
@@ -104,7 +110,7 @@ Repeating delivery reports `Parcel was already delivered.` Changing its service 
 
 ```sh
 mkdir -p out
-javac --release 17 -d out src/*.java tests/*.java
+javac -encoding UTF-8 --release 17 -d out src/*.java tests/*.java
 java -cp out ParcelDeliverySystemTest
 ```
 
