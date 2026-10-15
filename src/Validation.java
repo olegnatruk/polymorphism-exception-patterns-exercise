@@ -16,6 +16,14 @@ final class Validation {
         if (length < 3 || length > 20) {
             throw new InvalidParcelException("Receiver name must be 3-20 characters!");
         }
+        boolean containsNumber = name.codePoints().anyMatch(codePoint -> {
+            int type = Character.getType(codePoint);
+            return type == Character.DECIMAL_DIGIT_NUMBER
+                    || type == Character.LETTER_NUMBER || type == Character.OTHER_NUMBER;
+        });
+        if (containsNumber) {
+            throw new InvalidParcelException("Receiver name must not contain numbers!");
+        }
         return name;
     }
 

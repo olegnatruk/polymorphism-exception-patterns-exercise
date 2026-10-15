@@ -171,7 +171,7 @@ public final class ParcelDeliverySystem {
     private String readReceiverName() {
         while (true) {
             try {
-                return Validation.receiverName(readLine("Receiver name (3-20 characters): "));
+                return Validation.receiverName(readLine("Receiver name (3-20 characters, no numbers): "));
             } catch (InvalidParcelException exception) {
                 output.println(exception.getMessage());
             }

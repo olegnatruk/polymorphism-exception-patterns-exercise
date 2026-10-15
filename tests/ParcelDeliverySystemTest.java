@@ -151,6 +151,18 @@ public final class ParcelDeliverySystemTest {
         Document trimmed = new Document(" ABC0999 ", "  Ana Cruz  ", bd("0.1"), 1);
         equal(trimmed.getTrackingNumber(), "ABC0999");
         equal(trimmed.getReceiverName(), "Ana Cruz");
+        for (String invalidName : new String[] {"Ana1", "1Ana", "Ana 2 Cruz", "123", "Ana١",
+                "Ana１", "Ana²", "AnaⅢ", "Ana" + new String(Character.toChars(0x1D7D9))}) {
+            fails(InvalidParcelException.class,
+                    () -> new Document(tracking(), invalidName, bd("0.1"), 1));
+        }
+        fails(InvalidParcelException.class,
+                () -> new Box(tracking(), "Ben2", bd("1"), 1, 1, 1));
+        fails(InvalidParcelException.class,
+                () -> new Fragile(tracking(), "Cora3", bd("1"), 1, 1, 1, "Careful"));
+        for (String validName : new String[] {"Anne-Marie", "O'Neil", "José María"}) {
+            equal(new Document(tracking(), validName, bd("0.1"), 1).getReceiverName(), validName);
+        }
     }
 
     private static void testManager() throws Exception {
@@ -193,7 +205,7 @@ public final class ParcelDeliverySystemTest {
     private static void testConsole() throws Exception {
         String transcript = console(String.join("\n",
                 "nonsense", "9", "1", "0", "3", "abc1000", "ABC1000", "", "Al",
-                "ABCDEFGHIJKLMNOPQRSTU", "Ana Cruz",
+                "ABCDEFGHIJKLMNOPQRSTU", "Ana123", "Ana١", "Ana Cruz",
                 "NaN", "31", "1.8", "0", "40", "no", "20", "-1", "10", "", "Keep upright",
                 "4", "2", // Add the assignment example as Express.
                 "1", "2", "ABC1001", "Ben", "11", "1", "1", "1", "3", "2", // Same Day retry.
@@ -208,7 +220,8 @@ public final class ParcelDeliverySystemTest {
                 "Menu option must be a valid whole number!", "Menu option must be between 1 and 5!",
                 "Parcel type must be between 1 and 3!", "Tracking number must be ABC followed by 4 digits!",
                 "Receiver name must not be empty!", "Receiver name must be 3-20 characters!",
-                "Receiver name (3-20 characters): ", "Weight must be a valid decimal number!",
+                "Receiver name must not contain numbers!",
+                "Receiver name (3-20 characters, no numbers): ", "Weight must be a valid decimal number!",
                 "Weight (kg, minimum: > 0, maximum: 0.5): ",
                 "Weight (kg, minimum: > 0, maximum: 50): ",
                 "Weight (kg, minimum: > 0, maximum: 30): ",

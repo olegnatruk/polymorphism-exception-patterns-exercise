@@ -30,7 +30,7 @@ Menus and the parcel table use Unicode box-drawing borders. Use a UTF-8 terminal
 ╚════════════════════════════╝
 ```
 
-Enter a manually assigned tracking number matching uppercase `ABC` followed by four digits (for example, `ABC0001`). Tracking numbers must be unique in the current session. Text is trimmed; receiver names must be **3–20 characters** after trimming, and handling notes cannot be blank. Invalid input is explained and prompted again. New parcels start as Pending.
+Enter a manually assigned tracking number matching uppercase `ABC` followed by four digits (for example, `ABC0001`). Tracking numbers must be unique in the current session. Text is trimmed; receiver names must be **3–20 characters** after trimming and **must not contain numbers**, including Unicode numeric characters. Spaces, accented letters, apostrophes, and hyphens are supported. Handling notes cannot be blank. Invalid input is explained and prompted again. New parcels start as Pending.
 
 Weight prompts show the exclusive minimum (`> 0`) and the parcel type's inclusive maximum: **0.5 kg** for Document, **50 kg** for Box, or **30 kg** for Fragile. The page-count prompt shows the inclusive range **1–100**.
 
