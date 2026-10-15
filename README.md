@@ -26,6 +26,8 @@ For Windows Command Prompt, use `mkdir out` instead of `mkdir -p out`. The Java 
 
 Enter a manually assigned tracking number matching uppercase `ABC` followed by four digits (for example, `ABC0001`). Tracking numbers must be unique in the current session. Text is trimmed; receiver names must be **3–20 characters** after trimming, and handling notes cannot be blank. Invalid input is explained and prompted again. New parcels start as Pending.
 
+Weight prompts show the exclusive minimum (`> 0`) and the parcel type's inclusive maximum: **0.5 kg** for Document, **50 kg** for Box, or **30 kg** for Fragile. The page-count prompt shows the inclusive range **1–100**.
+
 Parcels are kept **in memory only** and are discarded when the program exits. End of input exits cleanly without storing an unfinished parcel. Delivered parcels remain visible, and their service cannot be changed.
 
 When no parcels have been added, View All Parcels, Change Delivery Service, and Mark as Delivered display `No parcels available.` and return to the menu without requesting a tracking number.
@@ -46,7 +48,7 @@ Volumetric weight is `(length × width × height) / 3500`. Box and Fragile weigh
 | Express | Base fee × 1.5 | None |
 | Same Day | Base fee × 2 + Php 100 | Chargeable weight ≤ 10 kg |
 
-Weights and money use `BigDecimal`. Volume multiplication avoids integer overflow, and chargeable weight is calculated without an approximate intermediate division. Fees are displayed with two decimal places.
+Weights and money use `BigDecimal`. Volume multiplication avoids integer overflow, and chargeable weight is calculated without an approximate intermediate division. Fees are displayed with two decimal places. Scientific notation is accepted for weights; document weights with more than 20 decimal places use a compact representation when possible so extreme exponents do not generate enormous table output.
 
 An ineligible Same Day selection while adding a parcel repeats service selection. An ineligible service change shows `Same Day delivery is only for parcels up to 10 kg!` and returns to the main menu, keeping the previous service and fee.
 
@@ -106,7 +108,9 @@ javac --release 17 -d out src/*.java tests/*.java
 java -cp out ParcelDeliverySystemTest
 ```
 
-The dependency-free test runner exits with an error if a check fails. It checks field and weight boundaries, upward rounding and integer overflow, all three pricing strategies, Same Day eligibility using actual and volumetric weights, the assignment's Php 330.00 example, Singleton identity, duplicate protection, delivery transitions, immutable collection access, and scripted console flows. Console tests cover all five operations, input retries, exact required messages, rejected service changes, table contents, and end of input.
+The dependency-free test runner exits with an error if a check fails. It checks field and weight boundaries, upward rounding and integer overflow, all three pricing strategies, Same Day eligibility using actual and volumetric weights, the assignment's Php 330.00 example, Singleton identity, duplicate protection, delivery transitions, immutable collection access, and scripted console flows. Console tests cover all five operations, input retries, exact required messages, rejected and unchanged service selections, table contents, and end of input. Additional edge cases cover Unicode receiver lengths, extreme scientific notation, tracking-number boundaries, whitespace and decimal-comma input, interrupted additions at every prompt, and interrupted service changes preserving existing state.
+
+The suite also checks exact rounding thresholds, 80 reproducible generated Box/Fragile pricing cases against an integer-arithmetic oracle, collection snapshots after later additions, null-service failures preserving parcel state, and input prompts showing their bounds. Tests can run with a 64 MB heap using `java -Xmx64m -cp out ParcelDeliverySystemTest`.
 
 ## Project layout
 

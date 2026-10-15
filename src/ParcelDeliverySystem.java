@@ -58,7 +58,8 @@ public final class ParcelDeliverySystem {
         BigDecimal weight = readWeight(maximum);
         Parcel parcel;
         if (type == 1) {
-            int pages = readInteger("Number of pages: ", 1, 100, "Number of pages");
+            int pages = readInteger("Number of pages (minimum: 1, maximum: 100): ",
+                    1, 100, "Number of pages");
             parcel = new Document(tracking, receiver, weight, pages);
         } else {
             int length = readInteger("Length (cm): ", 1, Integer.MAX_VALUE, "Length");
@@ -92,7 +93,7 @@ public final class ParcelDeliverySystem {
         // Polymorphism: each Parcel supplies its own type, weight, and fee behavior.
         for (Parcel parcel : parcels) {
             rows.add(new String[] {parcel.getTrackingNumber(), parcel.getType(), parcel.getReceiverName(),
-                    parcel.getChargeableWeight().stripTrailingZeros().toPlainString(),
+                    displayWeight(parcel.getChargeableWeight()),
                     parcel.getDeliveryService().getName(), "Php " + money(parcel.getDeliveryFee()),
                     parcel.getStatus().toString()});
         }
@@ -206,7 +207,8 @@ public final class ParcelDeliverySystem {
     private BigDecimal readWeight(BigDecimal maximum) {
         while (true) {
             try {
-                return Validation.weight(new BigDecimal(readLine("Weight (kg): ")), maximum);
+                String prompt = "Weight (kg, minimum: > 0, maximum: " + maximum.toPlainString() + "): ";
+                return Validation.weight(new BigDecimal(readLine(prompt)), maximum);
             } catch (NumberFormatException exception) {
                 output.println("Weight must be a valid decimal number!");
             } catch (InvalidParcelException exception) {
@@ -228,5 +230,13 @@ public final class ParcelDeliverySystem {
         return amount.setScale(2, RoundingMode.HALF_UP).toPlainString();
     }
 
-    private static final class EndOfInputException extends RuntimeException { }
+    private static String displayWeight(BigDecimal weight) {
+        BigDecimal normalized = weight.stripTrailingZeros();
+        // Avoid expanding extreme exponents into millions or billions of zeroes.
+        return normalized.scale() > 20 ? normalized.toString() : normalized.toPlainString();
+    }
+
+    private static final class EndOfInputException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+    }
 }

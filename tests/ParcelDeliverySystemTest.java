@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Random;
 
 /** Dependency-free regression tests: failures throw AssertionError and exit nonzero. */
 public final class ParcelDeliverySystemTest {
@@ -30,6 +31,12 @@ public final class ParcelDeliverySystemTest {
         testConsole();
         testUnchangedDeliveryService();
         testEndOfInput();
+        testExtremeWeights();
+        testAdditionalBoundaries();
+        testInterruptedOperations();
+        testRoundingBoundaries();
+        testGeneratedPricingCases();
+        testManagerSnapshotsAndFailedChanges();
         System.out.println("All " + checks + " checks passed.");
     }
 
@@ -202,6 +209,10 @@ public final class ParcelDeliverySystemTest {
                 "Parcel type must be between 1 and 3!", "Tracking number must be ABC followed by 4 digits!",
                 "Receiver name must not be empty!", "Receiver name must be 3-20 characters!",
                 "Receiver name (3-20 characters): ", "Weight must be a valid decimal number!",
+                "Weight (kg, minimum: > 0, maximum: 0.5): ",
+                "Weight (kg, minimum: > 0, maximum: 50): ",
+                "Weight (kg, minimum: > 0, maximum: 30): ",
+                "Number of pages (minimum: 1, maximum: 100): ",
                 "Weight must be greater than 0 and at most 30 kg!", "Length must be a positive integer!",
                 "Width must be a valid whole number!", "Height must be a positive integer!",
                 "Handling note must not be empty!", "Delivery service must be between 1 and 3!",
@@ -265,6 +276,184 @@ public final class ParcelDeliverySystemTest {
             contains(console(input), "Input ended. Goodbye!");
         }
         fails(ParcelNotFoundException.class, () -> ParcelManager.getInstance().findParcel("ABC2000"));
+    }
+
+    private static void testExtremeWeights() throws Exception {
+        for (String weight : new String[] {"1e-21", "1e-1000000", "1e-2147483647"}) {
+            Box box = box(weight, 1, 1, 1);
+            decimal(box.getChargeableWeight(), "1");
+            decimal(box.getDeliveryFee(), "40");
+            box.changeDeliveryService(new SameDayDelivery());
+            decimal(box.getDeliveryFee(), "180");
+            Fragile fragile = new Fragile(tracking(), "Ana", bd(weight), 1, 1, 1, "Careful");
+            decimal(fragile.getChargeableWeight(), "1");
+            fragile.changeDeliveryService(new ExpressDelivery());
+            decimal(fragile.getDeliveryFee(), "210");
+        }
+        String transcript = console("1\n1\nABC3000\nAna\n1e-2147483647\n1\n1\n2\n5\n");
+        contains(transcript, "Parcel added successfully! Delivery fee: Php 50.00");
+        contains(transcript, "1E-2147483647");
+        contains(transcript, "Goodbye!");
+        check(transcript.length() < 10000, "Tiny document weights must not expand into huge output");
+        transcript = console("1\n2\nABC3001\nAna\n1e-2147483647\n1\n1\n1\n1\n2\n5\n");
+        contains(transcript, "Parcel added successfully! Delivery fee: Php 40.00");
+        contains(transcript, "Goodbye!");
+        transcript = console("1\n1\nABC3002\nAna\n1e2147483647\n1e2147483649\n0.5\n1\n1\n5\n");
+        contains(transcript, "Weight must be greater than 0 and at most 0.5 kg!");
+        contains(transcript, "Weight must be a valid decimal number!");
+        contains(transcript, "Parcel added successfully! Delivery fee: Php 50.00");
+    }
+
+    private static void testAdditionalBoundaries() throws Exception {
+        equal(new Document("ABC0000", "Ana", bd("0.1"), 1).getTrackingNumber(), "ABC0000");
+        equal(new Document("ABC9999", "Ana", bd("0.1"), 1).getTrackingNumber(), "ABC9999");
+        String supplementaryLetter = new String(Character.toChars(0x10400));
+        equal(new Document(tracking(), supplementaryLetter.repeat(3), bd("0.1"), 1).getReceiverName(),
+                supplementaryLetter.repeat(3));
+        equal(new Document(tracking(), supplementaryLetter.repeat(20), bd("0.1"), 1).getReceiverName(),
+                supplementaryLetter.repeat(20));
+        fails(InvalidParcelException.class,
+                () -> new Document(tracking(), supplementaryLetter.repeat(2), bd("0.1"), 1));
+        fails(InvalidParcelException.class,
+                () -> new Document(tracking(), supplementaryLetter.repeat(21), bd("0.1"), 1));
+        equal(new Document(tracking(), "José María", bd("0.1"), 1).getReceiverName(), "José María");
+        Fragile ten = new Fragile(tracking(), "Ana", bd("10"), 1, 1, 35000, "Careful");
+        ten.changeDeliveryService(new SameDayDelivery());
+        decimal(ten.getDeliveryFee(), "1100");
+        Fragile aboveTen = new Fragile(tracking(), "Ana", bd("1"), 1, 1, 35001, "Careful");
+        fails(DeliveryServiceUnavailableException.class,
+                () -> aboveTen.changeDeliveryService(new SameDayDelivery()));
+        decimal(aboveTen.getDeliveryFee(), "540");
+        Box exact = box("2.0000000000000000000000000000000001", 1, 1, 1);
+        decimal(exact.getChargeableWeight(), "3");
+        String transcript = console(" 1 \n 1 \n ABC3003 \n José María \n 0,5 \n 0.5 \n 100 \n 3 \n 2 \n 5 \n");
+        contains(transcript, "Weight must be a valid decimal number!");
+        contains(transcript, "Parcel added successfully! Delivery fee: Php 200.00");
+        contains(transcript, "José María");
+        contains(transcript, "Goodbye!");
+    }
+
+    private static void testInterruptedOperations() throws Exception {
+        ParcelManager manager = ParcelManager.getInstance();
+        String[][] inputs = {
+                {"1", "1", "ABC4000", "Ana", "0.1", "1", "1"},
+                {"1", "2", "ABC4001", "Ana", "1", "1", "1", "1", "1"},
+                {"1", "3", "ABC4002", "Ana", "1", "1", "1", "1", "Careful", "1"}
+        };
+        for (String[] fields : inputs) {
+            for (int length = 0; length < fields.length; length++) {
+                String input = String.join("\n", java.util.Arrays.copyOf(fields, length)) + "\n";
+                contains(console(input), "Input ended. Goodbye!");
+                fails(ParcelNotFoundException.class, () -> manager.findParcel(fields[2]));
+            }
+        }
+        String transcript = console("1\n2\nABC4003\nAna\n11\n1\n1\n1\n3\n");
+        contains(transcript, "Same Day delivery is only for parcels up to 10 kg!");
+        contains(transcript, "Input ended. Goodbye!");
+        fails(ParcelNotFoundException.class, () -> manager.findParcel("ABC4003"));
+        contains(console("1\n1\nABC4003\nAna\n0.1\n1\n1\n5\n"),
+                "Parcel added successfully! Delivery fee: Php 50.00");
+        Parcel pending = manager.findParcel("ABC1001");
+        DeliveryStrategy originalService = pending.getDeliveryService();
+        transcript = console("3\nABC1001\ninvalid\n");
+        contains(transcript, "Delivery service must be a valid whole number!");
+        contains(transcript, "Input ended. Goodbye!");
+        check(pending.getDeliveryService() == originalService, "Interrupted change must preserve strategy");
+        decimal(pending.getDeliveryFee(), "660");
+        equal(pending.getStatus(), ParcelStatus.PENDING);
+    }
+
+    private static void testRoundingBoundaries() throws Exception {
+        for (int kilograms : new int[] {1, 2, 10, 30, 50}) {
+            decimal(box(Integer.toString(kilograms), 1, 1, 1).getChargeableWeight(),
+                    Integer.toString(kilograms));
+            String justAbove = kilograms + ".0000000000000000000000000000000001";
+            if (kilograms == 50) {
+                fails(InvalidParcelException.class, () -> box(justAbove, 1, 1, 1));
+            } else {
+                decimal(box(justAbove, 1, 1, 1).getChargeableWeight(), Integer.toString(kilograms + 1));
+            }
+        }
+        for (int kilograms : new int[] {1, 2, 10, 30, 50}) {
+            for (int offset : new int[] {-1, 0, 1}) {
+                Box parcel = box("0.1", 1, 1, kilograms * 3500 + offset);
+                decimal(parcel.getChargeableWeight(), Integer.toString(kilograms + (offset > 0 ? 1 : 0)));
+            }
+        }
+        Box almostTen = box("9.9999999999999999999999999999999999", 1, 1, 1);
+        almostTen.changeDeliveryService(new SameDayDelivery());
+        decimal(almostTen.getDeliveryFee(), "900");
+        String transcript = console("1\n1\nABC5000\nAna\n0e-2147483647\n-1e-2147483647\n"
+                + "1e-2147483648\n10e-2147483647\n1\n1\n2\n5\n");
+        contains(transcript, "Weight must be greater than 0 and at most 0.5 kg!");
+        contains(transcript, "Weight must be a valid decimal number!");
+        contains(transcript, "1E-2147483646");
+        contains(transcript, "Goodbye!");
+        check(transcript.length() < 20000, "Extreme scales with trailing zeroes must stay compact");
+    }
+
+    private static void testGeneratedPricingCases() throws Exception {
+        Random random = new Random(20261013L);
+        for (int index = 0; index < 80; index++) {
+            boolean isFragile = index % 3 == 0;
+            int grams = 1 + random.nextInt(isFragile ? 30000 : 50000);
+            int length = 1 + random.nextInt(40);
+            int width = 1 + random.nextInt(40);
+            int height = index % 10 == 0 ? Integer.MAX_VALUE : 1 + random.nextInt(40);
+            BigDecimal weight = BigDecimal.valueOf(grams, 3);
+            Parcel parcel = isFragile
+                    ? new Fragile(tracking(), "Ana", weight, length, width, height, "Careful")
+                    : new Box(tracking(), "Ana", weight, length, width, height);
+            // Integer arithmetic is an independent oracle for these exact gram inputs.
+            BigInteger[] volumeParts = BigInteger.valueOf(length).multiply(BigInteger.valueOf(width))
+                    .multiply(BigInteger.valueOf(height)).divideAndRemainder(BigInteger.valueOf(3500));
+            BigInteger volumeCeiling = volumeParts[0].add(volumeParts[1].signum() == 0
+                    ? BigInteger.ZERO : BigInteger.ONE);
+            BigInteger expectedWeight = volumeCeiling.max(BigInteger.valueOf((grams + 999) / 1000));
+            BigInteger expectedBase = expectedWeight.multiply(BigInteger.valueOf(40))
+                    .add(BigInteger.valueOf(isFragile ? 100 : 0));
+            decimal(parcel.getChargeableWeight(), expectedWeight.toString());
+            decimal(parcel.getDeliveryFee(), expectedBase.toString());
+            parcel.changeDeliveryService(new ExpressDelivery());
+            decimal(parcel.getDeliveryFee(), expectedBase.multiply(BigInteger.valueOf(3))
+                    .divide(BigInteger.TWO).toString());
+            DeliveryStrategy express = parcel.getDeliveryService();
+            if (expectedWeight.compareTo(BigInteger.TEN) <= 0) {
+                parcel.changeDeliveryService(new SameDayDelivery());
+                decimal(parcel.getDeliveryFee(), expectedBase.multiply(BigInteger.TWO)
+                        .add(BigInteger.valueOf(100)).toString());
+            } else {
+                fails(DeliveryServiceUnavailableException.class,
+                        () -> parcel.changeDeliveryService(new SameDayDelivery()));
+                check(parcel.getDeliveryService() == express, "Rejected generated case must retain Express");
+                decimal(parcel.getDeliveryFee(), expectedBase.multiply(BigInteger.valueOf(3))
+                        .divide(BigInteger.TWO).toString());
+            }
+        }
+    }
+
+    private static void testManagerSnapshotsAndFailedChanges() throws Exception {
+        ParcelManager manager = ParcelManager.getInstance();
+        List<Parcel> snapshot = manager.getAllParcels();
+        int previousSize = snapshot.size();
+        Document parcel = document("0.1", 1);
+        manager.addParcel(parcel);
+        equal(snapshot.size(), previousSize);
+        check(!snapshot.contains(parcel), "Earlier collection snapshot must not include later additions");
+        List<Parcel> current = manager.getAllParcels();
+        check(current.get(current.size() - 1) == parcel, "New parcel must appear last in current snapshot");
+        fails(UnsupportedOperationException.class, () -> current.add(parcel));
+        fails(ParcelNotFoundException.class, () -> manager.findParcel(null));
+        fails(ParcelNotFoundException.class, () -> manager.findParcel("  "));
+        DeliveryStrategy original = parcel.getDeliveryService();
+        fails(InvalidParcelException.class, () -> manager.changeDeliveryService(parcel.getTrackingNumber(), null));
+        check(parcel.getDeliveryService() == original, "Null service must preserve original strategy");
+        decimal(parcel.getDeliveryFee(), "50");
+        equal(parcel.getStatus(), ParcelStatus.PENDING);
+        check(manager.markAsDelivered(parcel.getTrackingNumber()), "Parcel must still be deliverable after failed change");
+        fails(ParcelAlreadyDeliveredException.class, () -> parcel.changeDeliveryService(null));
+        check(parcel.getDeliveryService() == original, "Failed change on delivered parcel must preserve strategy");
+        equal(parcel.getStatus(), ParcelStatus.DELIVERED);
     }
 
     private static String console(String input) throws Exception {

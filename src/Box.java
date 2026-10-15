@@ -34,7 +34,11 @@ public class Box extends Parcel {
                 .multiply(BigDecimal.valueOf(height));
         BigDecimal roundedVolumetricWeight = volume.divide(new BigDecimal("3500"),
                 0, RoundingMode.CEILING);
-        return getWeight().setScale(0, RoundingMode.CEILING).max(roundedVolumetricWeight);
+        // Compare before rounding: tiny scientific-notation weights may have a huge scale.
+        if (getWeight().compareTo(roundedVolumetricWeight) <= 0) {
+            return roundedVolumetricWeight;
+        }
+        return getWeight().setScale(0, RoundingMode.CEILING);
     }
 
     @Override
